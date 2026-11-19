@@ -83,7 +83,11 @@ tar --no-same-owner --no-same-permissions -xzf "\${BUNDLE}" -C /
 chmod 0755 "/usr/local/emhttp/plugins/\${PLUGIN_NAME}/scripts/"*.sh
 chmod 0755 "\${RC_TARGET}"
 mkdir -p /etc/rc.d
-ln -sfn "\${RC_TARGET}" "\${RC_SCRIPT}"
+# Unraid normally aliases these directories, so the service is already visible.
+# Linking in that layout would fail with "are the same file" under set -e.
+if [[ ! "\${RC_TARGET}" -ef "\${RC_SCRIPT}" ]]; then
+  ln -sfn "\${RC_TARGET}" "\${RC_SCRIPT}"
+fi
 
 rm -f \$(ls "\${CFG_DIR}/\${PLUGIN_NAME}-"*-x86_64-1.tgz 2>/dev/null | grep -v "\${PLUGIN_VERSION}" || true)
 
