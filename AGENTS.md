@@ -98,3 +98,5 @@ Native Unraid plugin for running `komodo periphery` directly on the Unraid host 
 - update-komodo checks stable releases daily and on manual dispatch.
 - Verify official SHA256, validate the package, publish the bundle, then commit metadata.
 - Preserve config and keys. Core updates are outside this repository.
+
+- Never link RC_TARGET to RC_SCRIPT when both refer to the same file (-ef); CI covers aliased and separate rc.d directories. Manual update workflow dispatch rebuilds for packaging fixes.
