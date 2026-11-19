@@ -218,3 +218,5 @@ Unraid's Install Plugin page; back up config and keys first. Unraid controls
 whether updates install manually or automatically. This does not update
 Komodo Core; keep Core compatible with Periphery. GitHub may disable schedules
 after 60 days of repository inactivity; re-enable in Actions if necessary.
+
+Installer compatibility: Unraid aliases /etc/rc.d to /usr/local/etc/rc.d. The installer checks whether both service paths already refer to the same file before creating a compatibility link. Manual Update Komodo runs rebuild the plugin even when the upstream version is unchanged, allowing packaging fixes to be released.
