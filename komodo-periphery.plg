@@ -2,12 +2,12 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name        "komodo-periphery">
 <!ENTITY author      "darkis81 (original plugin by MephistoJB)">
-<!ENTITY version     "2026.11.19.065715">
+<!ENTITY version     "2026.11.19.072024">
 <!ENTITY launch      "Network Services/Komodo Periphery">
 <!ENTITY pluginURL   "https://raw.githubusercontent.com/darkis81/unraid-komodo-client-plugin/main/komodo-periphery.plg">
-<!ENTITY bundle      "komodo-periphery-2026.11.19.065715-x86_64-1.tgz">
-<!ENTITY bundleURL   "https://github.com/darkis81/unraid-komodo-client-plugin/releases/download/v2026.11.19.065715/komodo-periphery-2026.11.19.065715-x86_64-1.tgz">
-<!ENTITY bundleSHA256 "11b52851b08ca1ec98ebaacad07f3b60c91bae4e360cb89d2a5d54dce555c654">
+<!ENTITY bundle      "komodo-periphery-2026.11.19.072024-x86_64-1.tgz">
+<!ENTITY bundleURL   "https://github.com/darkis81/unraid-komodo-client-plugin/releases/download/v2026.11.19.072024/komodo-periphery-2026.11.19.072024-x86_64-1.tgz">
+<!ENTITY bundleSHA256 "2e1d53f93e72bd0060e7d69a313a753e48b7a38936c8390125ad7fc8101bae12">
 <!ENTITY supportURL  "https://github.com/darkis81/unraid-komodo-client-plugin/pulls">
 <!ENTITY projectURL  "https://github.com/darkis81/unraid-komodo-client-plugin">
 <!ENTITY readmeURL   "https://github.com/darkis81/unraid-komodo-client-plugin#readme">
@@ -20,6 +20,11 @@
 <DESCRIPTION>Run Komodo Periphery directly on Unraid as a native host service. The plugin keeps configuration under /boot/config/plugins/komodo-periphery and persistent Komodo state under /boot/config/komodo/periphery-agent so updates do not rotate keys or lose onboarding. </DESCRIPTION>
 
 <CHANGES><![CDATA[
+
+## 2026.11.19.072024
+
+- Update Periphery to v2.3.4 with verified SHA256 and daily stable-release checks.
+
 
 ## 2026.11.19.065715
 
@@ -46,10 +51,10 @@
 set -euo pipefail
 
 PLUGIN_NAME="komodo-periphery"
-PLUGIN_VERSION="2026.11.19.065715"
+PLUGIN_VERSION="2026.11.19.072024"
 CFG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
 STATE_DIR="/boot/config/komodo/periphery-agent"
-BUNDLE="${CFG_DIR}/komodo-periphery-2026.11.19.065715-x86_64-1.tgz"
+BUNDLE="${CFG_DIR}/komodo-periphery-2026.11.19.072024-x86_64-1.tgz"
 INSTALL_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
 RC_TARGET="/usr/local/etc/rc.d/rc.${PLUGIN_NAME}"
 RC_SCRIPT="/etc/rc.d/rc.${PLUGIN_NAME}"
@@ -72,7 +77,11 @@ tar --no-same-owner --no-same-permissions -xzf "${BUNDLE}" -C /
 chmod 0755 "/usr/local/emhttp/plugins/${PLUGIN_NAME}/scripts/"*.sh
 chmod 0755 "${RC_TARGET}"
 mkdir -p /etc/rc.d
-ln -sfn "${RC_TARGET}" "${RC_SCRIPT}"
+# Unraid normally aliases these directories, so the service is already visible.
+# Linking in that layout would fail with "are the same file" under set -e.
+if [[ ! "${RC_TARGET}" -ef "${RC_SCRIPT}" ]]; then
+  ln -sfn "${RC_TARGET}" "${RC_SCRIPT}"
+fi
 
 rm -f $(ls "${CFG_DIR}/${PLUGIN_NAME}-"*-x86_64-1.tgz 2>/dev/null | grep -v "${PLUGIN_VERSION}" || true)
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.19.072024
+
+- Update Periphery to v2.3.4 with verified SHA256 and daily stable-release checks.
+
+
 ## 2026.11.19.065715
 
 - Update Periphery to v2.3.4 with verified SHA256 and daily stable-release checks.
