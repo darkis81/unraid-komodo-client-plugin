@@ -1,0 +1,134 @@
+name: Update Komodo
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: update-komodo
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Resolve latest stable Periphery
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh api repos/moghtech/komodo/releases/latest > /tmp/komodo-release.json
+          python3 - <<'PY'
+          import datetime, json, os, pathlib, re
+          release = json.loads(pathlib.Path('/tmp/komodo-release.json').read_text())
+          tag = release['tag_name']
+          assert not release['draft'] and not release['prerelease']
+          assert re.fullmatch(r'v\d+\.\d+\.\d+', tag), 'Unexpected version'
+          asset, = [a for a in release['assets'] if a['name'] == 'periphery-x86_64']
+          digest = asset.get('digest') or ''
+          assert re.fullmatch(r'sha256:[0-9a-f]{64}', digest), 'Missing upstream SHA256'
+          url = f'https://github.com/moghtech/komodo/releases/download/{tag}/periphery-x86_64'
+          assert asset['browser_download_url'] == url
+          path = pathlib.Path('meta/plugin.env')
+          old = path.read_text()
+          owner, repo = os.environ['GITHUB_REPOSITORY'].split('/')
+          current = re.search(r'^KOMODO_VERSION="([^"]+)"', old, re.M)[1]
+          checksum = re.search(r'^KOMODO_BINARY_SHA256="([^"]+)"', old, re.M)[1]
+          changed = current != tag or checksum != digest[7:] or f'GITHUB_OWNER="{owner}"' not in old
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'changed={str(changed).lower()}\n')
+          if not changed:
+              print(f'Already tracking {tag}')
+              raise SystemExit
+          now = datetime.datetime.now(datetime.timezone.utc)
+          version = now.strftime('%Y.%m.%d.%H%M%S')
+          values = {
+              'GITHUB_OWNER': owner, 'GITHUB_REPO': repo,
+              'PLUGIN_AUTHOR': f'{owner} (original plugin by MephistoJB)',
+              'PLUGIN_VERSION': version, 'CA_DATE': now.strftime('%Y-%m-%d'),
+              'PROJECT_URL': f'https://github.com/{owner}/{repo}',
+              'SUPPORT_URL': f'https://github.com/{owner}/{repo}/pulls',
+              'README_URL': f'https://github.com/{owner}/{repo}#readme',
+              'KOMODO_VERSION': tag, 'KOMODO_BINARY_SHA256': digest[7:],
+              'KOMODO_BINARY_URL': url,
+          }
+          for key, value in values.items():
+              old, count = re.subn(rf'^{key}="[^"]*"$', f'{key}="{value}"', old, flags=re.M)
+              assert count == 1, key
+          path.write_text(old)
+          pathlib.Path('VERSION').write_text(version + '\n')
+          readme = pathlib.Path('README.md')
+          text = readme.read_text().replace('MephistoJB/unraid-komodo-client-plugin', f'{owner}/{repo}')
+          text = re.sub(r'Komodo release: \x60v[^\x60]+\x60', f'Komodo release: \x60{tag}\x60', text)
+          text = re.sub(r'upstream SHA256: \x60[0-9a-f]+\x60', f'upstream SHA256: \x60{digest[7:]}\x60', text)
+          if '## Automatic Stable Releases' not in text:
+              text += '''
+          ## Automatic Stable Releases
+
+          The Update Komodo workflow checks the official latest stable release daily
+          and can also be run manually from Actions. It excludes prereleases, requires
+          GitHub's upstream SHA256 digest, and verifies the downloaded binary.
+          Each update validates shell, PHP, XML, binary version, and package paths
+          before publishing a release. Only after uploading the bundle does it commit
+          the new plugin URL and checksum. Failed checks leave the plugin feed unchanged.
+          Original wrapper credit: MephistoJB.
+
+          Install komodo-periphery.plg from this fork to follow its updates. Existing
+          installations tracking the original author's URL must switch once using
+          Unraid's Install Plugin page; back up config and keys first. Unraid controls
+          whether updates install manually or automatically. This does not update
+          Komodo Core; keep Core compatible with Periphery. GitHub may disable schedules
+          after 60 days of repository inactivity; re-enable in Actions if necessary.
+          '''
+          readme.write_text(text)
+          changes = pathlib.Path('CHANGELOG.md')
+          entry = f'## {version}\n\n- Update Periphery to {tag} with verified SHA256 and daily stable-release checks.\n\n'
+          changes.write_text(changes.read_text().replace('# Changelog\n', '# Changelog\n\n' + entry, 1))
+          agents = pathlib.Path('AGENTS.md')
+          text = agents.read_text()
+          if '## Automated Upstream Updates' not in text:
+              text += '\n## Automated Upstream Updates\n\n- update-komodo checks stable releases daily and on manual dispatch.\n- Verify official SHA256, validate the package, publish the bundle, then commit metadata.\n- Preserve config and keys. Core updates are outside this repository.\n'
+          agents.write_text(text)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f'version={version}\nkomodo={tag}\n')
+          PY
+      - name: Install validation tools
+        if: steps.upstream.outputs.changed == 'true'
+        run: sudo apt-get update && sudo apt-get install -y php-cli libxml2-utils
+      - name: Build and validate release
+        if: steps.upstream.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          find scripts src -type f \( -name '*.sh' -o -name 'rc.*' \) -print0 | xargs -0 -n1 bash -n
+          bash scripts/build-bundle.sh
+          bash scripts/render-metadata.sh
+          find src -type f \( -name '*.php' -o -name '*.page' \) -print0 | xargs -0 -n1 php -l
+          xmllint --noout komodo-periphery.plg plugins/komodo-periphery.xml ca_profile.xml
+          source scripts/lib.sh
+          binary="build/bundle/rootfs/usr/local/emhttp/plugins/${PLUGIN_NAME}/bin/periphery"
+          "$binary" --version | tee /tmp/periphery-version
+          grep -F "${KOMODO_VERSION#v}" /tmp/periphery-version
+          if tar -tzf "dist/$(bundle_name)" | grep -Eq '^(\./)?etc/rc.d(/|$)'; then
+            echo 'Unsafe /etc/rc.d package entry' >&2
+            exit 1
+          fi
+      - name: Publish bundle before updating plugin feed
+        if: steps.upstream.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.upstream.outputs.version }}
+          KOMODO: ${{ steps.upstream.outputs.komodo }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add meta/plugin.env VERSION README.md CHANGELOG.md AGENTS.md komodo-periphery.plg plugins/komodo-periphery.xml ca_profile.xml
+          git commit -m "Update Komodo Periphery to ${KOMODO}"
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+          gh release create "v${VERSION}" dist/*.tgz --title "Komodo Periphery ${KOMODO} (${VERSION})" --notes "Stable Periphery ${KOMODO}. SHA256, shell, PHP, XML, binary version, and package paths validated. Config and keys preserved."
+          git push origin HEAD:main
