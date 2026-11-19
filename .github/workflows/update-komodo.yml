@@ -36,7 +36,7 @@ jobs:
           owner, repo = os.environ['GITHUB_REPOSITORY'].split('/')
           current = re.search(r'^KOMODO_VERSION="([^"]+)"', old, re.M)[1]
           checksum = re.search(r'^KOMODO_BINARY_SHA256="([^"]+)"', old, re.M)[1]
-          changed = current != tag or checksum != digest[7:] or f'GITHUB_OWNER="{owner}"' not in old
+          changed = current != tag or checksum != digest[7:] or f'GITHUB_OWNER="{owner}"' not in old or os.environ['GITHUB_EVENT_NAME'] == 'workflow_dispatch'
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write(f'changed={str(changed).lower()}\n')
           if not changed:
@@ -105,6 +105,30 @@ jobs:
           find scripts src -type f \( -name '*.sh' -o -name 'rc.*' \) -print0 | xargs -0 -n1 bash -n
           bash scripts/build-bundle.sh
           bash scripts/render-metadata.sh
+          # Reproduce Unraid's aliased rc.d directories, then a separate-directory host.
+          python3 - <<'PY'
+          import pathlib, re, subprocess, tempfile
+          xml = pathlib.Path('komodo-periphery.plg').read_text()
+          block = re.search(r'if \[\[ ! "\$\{RC_TARGET\}" -ef "\$\{RC_SCRIPT\}" \]\]; then\n.*?\nfi', xml, re.S)[0]
+          for aliased in (True, False):
+              with tempfile.TemporaryDirectory() as directory:
+                  root = pathlib.Path(directory)
+                  target = root / 'real'
+                  target.mkdir()
+                  alias = root / 'alias'
+                  if aliased:
+                      alias.symlink_to(target, target_is_directory=True)
+                  else:
+                      alias.mkdir()
+                  service = target / 'service'
+                  service.write_text('service content')
+                  script = alias / 'service'
+                  subprocess.run(['bash', '-euc', block], env={'RC_TARGET': str(service), 'RC_SCRIPT': str(script), 'PATH': '/usr/bin:/bin'}, check=True)
+                  assert service.is_file() and not service.is_symlink()
+                  assert script.read_text() == 'service content'
+                  assert script.is_symlink() != aliased
+          print('rc.d alias and separate-directory regression checks passed')
+          PY
           find src -type f \( -name '*.php' -o -name '*.page' \) -print0 | xargs -0 -n1 php -l
           xmllint --noout komodo-periphery.plg plugins/komodo-periphery.xml ca_profile.xml
           source scripts/lib.sh
