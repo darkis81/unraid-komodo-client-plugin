@@ -92,3 +92,9 @@ Native Unraid plugin for running `komodo periphery` directly on the Unraid host 
 - Shipping the plugin runtime in Docker
 - Writing secrets or logs persistently to the repo
 - Automatic CA submission from this repository
+
+## Automated Upstream Updates
+
+- update-komodo checks stable releases daily and on manual dispatch.
+- Verify official SHA256, validate the package, publish the bundle, then commit metadata.
+- Preserve config and keys. Core updates are outside this repository.

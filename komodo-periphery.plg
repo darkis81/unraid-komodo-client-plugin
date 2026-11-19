@@ -1,16 +1,16 @@
 <?xml version='1.0' standalone='yes'?>
 <!DOCTYPE PLUGIN [
 <!ENTITY name        "komodo-periphery">
-<!ENTITY author      "MephistoJB">
-<!ENTITY version     "2026.06.26">
+<!ENTITY author      "darkis81 (original plugin by MephistoJB)">
+<!ENTITY version     "2026.11.19.065715">
 <!ENTITY launch      "Network Services/Komodo Periphery">
-<!ENTITY pluginURL   "https://raw.githubusercontent.com/MephistoJB/unraid-komodo-client-plugin/main/komodo-periphery.plg">
-<!ENTITY bundle      "komodo-periphery-2026.06.26-x86_64-1.tgz">
-<!ENTITY bundleURL   "https://github.com/MephistoJB/unraid-komodo-client-plugin/releases/download/v2026.06.26/komodo-periphery-2026.06.26-x86_64-1.tgz">
-<!ENTITY bundleSHA256 "ac3bb4ddee8e23c0e90a2113c9b0963ea22703b13cd382082684888127ef5d18">
-<!ENTITY supportURL  "https://github.com/MephistoJB/unraid-komodo-client-plugin/issues">
-<!ENTITY projectURL  "https://github.com/MephistoJB/unraid-komodo-client-plugin">
-<!ENTITY readmeURL   "https://github.com/MephistoJB/unraid-komodo-client-plugin#readme">
+<!ENTITY pluginURL   "https://raw.githubusercontent.com/darkis81/unraid-komodo-client-plugin/main/komodo-periphery.plg">
+<!ENTITY bundle      "komodo-periphery-2026.11.19.065715-x86_64-1.tgz">
+<!ENTITY bundleURL   "https://github.com/darkis81/unraid-komodo-client-plugin/releases/download/v2026.11.19.065715/komodo-periphery-2026.11.19.065715-x86_64-1.tgz">
+<!ENTITY bundleSHA256 "11b52851b08ca1ec98ebaacad07f3b60c91bae4e360cb89d2a5d54dce555c654">
+<!ENTITY supportURL  "https://github.com/darkis81/unraid-komodo-client-plugin/pulls">
+<!ENTITY projectURL  "https://github.com/darkis81/unraid-komodo-client-plugin">
+<!ENTITY readmeURL   "https://github.com/darkis81/unraid-komodo-client-plugin#readme">
 <!ENTITY plugdir     "/usr/local/emhttp/plugins/&name;">
 <!ENTITY cfgdir      "/boot/config/plugins/&name;">
 ]>
@@ -20,6 +20,11 @@
 <DESCRIPTION>Run Komodo Periphery directly on Unraid as a native host service. The plugin keeps configuration under /boot/config/plugins/komodo-periphery and persistent Komodo state under /boot/config/komodo/periphery-agent so updates do not rotate keys or lose onboarding. </DESCRIPTION>
 
 <CHANGES><![CDATA[
+
+## 2026.11.19.065715
+
+- Update Periphery to v2.3.4 with verified SHA256 and daily stable-release checks.
+
 
 ## 2026.06.26
 
@@ -41,10 +46,10 @@
 set -euo pipefail
 
 PLUGIN_NAME="komodo-periphery"
-PLUGIN_VERSION="2026.06.26"
+PLUGIN_VERSION="2026.11.19.065715"
 CFG_DIR="/boot/config/plugins/${PLUGIN_NAME}"
 STATE_DIR="/boot/config/komodo/periphery-agent"
-BUNDLE="${CFG_DIR}/komodo-periphery-2026.06.26-x86_64-1.tgz"
+BUNDLE="${CFG_DIR}/komodo-periphery-2026.11.19.065715-x86_64-1.tgz"
 INSTALL_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
 RC_TARGET="/usr/local/etc/rc.d/rc.${PLUGIN_NAME}"
 RC_SCRIPT="/etc/rc.d/rc.${PLUGIN_NAME}"
@@ -82,7 +87,7 @@ echo ""
 echo "----------------------------------------------------"
 echo " ${PLUGIN_NAME} installed"
 echo " Plugin version: ${PLUGIN_VERSION}"
-echo " Komodo binary: v2.2.0"
+echo " Komodo binary: v2.3.4"
 echo "----------------------------------------------------"
 echo ""
 ]]></INLINE>

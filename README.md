@@ -93,9 +93,9 @@ This repository does not commit the upstream Komodo binary. Instead, the build s
 
 Current upstream pin:
 
-- Komodo release: `v2.2.0`
+- Komodo release: `v2.3.4`
 - binary asset: `periphery-x86_64`
-- upstream SHA256: `ace9007805dbfe75ad73c75c36bb26852fa909d825577f31f5d13eecd3c52660`
+- upstream SHA256: `46d50313970aea59d293bbe237648f4becea74e8abc2f30f1bb62b73456fc72e`
 
 Run:
 
@@ -122,7 +122,7 @@ After publishing a GitHub release that contains the generated bundle:
 
 1. Open `Plugins` in Unraid.
 2. Choose `Install Plugin`.
-3. Paste the raw GitHub URL to [`komodo-periphery.plg`](https://raw.githubusercontent.com/MephistoJB/unraid-komodo-client-plugin/main/komodo-periphery.plg).
+3. Paste the raw GitHub URL to [`komodo-periphery.plg`](https://raw.githubusercontent.com/darkis81/unraid-komodo-client-plugin/main/komodo-periphery.plg).
 4. Open `Settings -> Network Services -> Komodo Periphery`.
 5. Set:
    - `PERIPHERY_CORE_ADDRESS`
@@ -201,3 +201,20 @@ The repository includes a GitHub Actions workflow that:
 MIT for the plugin wrapper code in this repository.
 
 Komodo Periphery itself remains distributed under its upstream license from the official Komodo release assets.
+
+## Automatic Stable Releases
+
+The Update Komodo workflow checks the official latest stable release daily
+and can also be run manually from Actions. It excludes prereleases, requires
+GitHub's upstream SHA256 digest, and verifies the downloaded binary.
+Each update validates shell, PHP, XML, binary version, and package paths
+before publishing a release. Only after uploading the bundle does it commit
+the new plugin URL and checksum. Failed checks leave the plugin feed unchanged.
+Original wrapper credit: MephistoJB.
+
+Install komodo-periphery.plg from this fork to follow its updates. Existing
+installations tracking the original author's URL must switch once using
+Unraid's Install Plugin page; back up config and keys first. Unraid controls
+whether updates install manually or automatically. This does not update
+Komodo Core; keep Core compatible with Periphery. GitHub may disable schedules
+after 60 days of repository inactivity; re-enable in Actions if necessary.
